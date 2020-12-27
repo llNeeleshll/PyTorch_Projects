@@ -6,11 +6,9 @@
 .exe
 .o
 .so
+Data/cifar-10-batches-py/
+Data/cifar-10-python.tar.gz
 
-FaceClassification/data
-FaceClassification/lfw.zip
-FaceClassification/video_face_data.mp4
-FaceClassification/neeleshnotneelesh.pth
 
 # Packages #
 ############

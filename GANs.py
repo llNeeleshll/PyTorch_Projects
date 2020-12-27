@@ -7,6 +7,10 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
+from PIL import ImageFile
+
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # setting the hyperparameters
 batchsize = 64
@@ -14,11 +18,14 @@ imagesize = 64
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+torch.cuda.device_count
+
 # Creating transformations
-transform = transforms.Compose([transforms.Scale(imagesize), transforms.ToTensor(), transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))])
+transform = transforms.Compose([transforms.Resize((imagesize,imagesize)), transforms.ToTensor(), transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))])
 
 # Loading the dataset
-dataset = dset.CIFAR10(root="./data", download=True, transform=transform)
+dataset = dset.ImageFolder('C:/Users/neele/OneDrive/Documents/Datasets/bookimagesfortraining', transform=transform)
+#dataset = dset.CIFAR10(root="./data", download=True, transform=transform)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batchsize, shuffle=True)
 
 # Defining the weights initialization function
@@ -93,51 +100,61 @@ optimizer_generator = torch.optim.Adam(network_generator.parameters(), 0.0002, (
 optimizer_discriminator = torch.optim.Adam(network_discriminator.parameters(), 0.0002, (0.5,0.999))
 
 # Training the GAN
-epochs = 25
+epochs = 500
 
 print("Starting with the training...")
 
 for epoch in range(epochs):
 
     for i, data in enumerate(dataloader, 0):
+
+        try:
         
-        # Step 1 : Updating weights of neural network of the Discriminator
-        network_discriminator.zero_grad()
+            # Step 1 : Updating weights of neural network of the Discriminator
+            network_discriminator.zero_grad()
 
-        # Training the Discriminator with the real image from the dataset
-        real, _ = data
-        inputs = Variable(real.to(device))
-        target = Variable(torch.ones(inputs.size()[0], device=device))
-        output = network_discriminator(inputs)
-        error_discriminator_real = criterion(output, target)
+            # Training the Discriminator with the real image from the dataset
+            real, _ = data
+            inputs = Variable(real.to(device))
+            target = Variable(torch.ones(inputs.size()[0], device=device))
+            output = network_discriminator(inputs)
+            error_discriminator_real = criterion(output, target)
 
-        # Training the Discriminator with the fake image from the Generator
-        noise = Variable(torch.randn(inputs.size()[0], 100, 1, 1, device=device))
-        fake = network_generator(noise)
-        target = Variable(torch.zeros(inputs.size()[0], device=device))
-        output = network_discriminator(fake.detach())
-        error_discriminator_fake = criterion(output, target)
-
-        # Backpropogating the total error
-        error_discriminator = error_discriminator_real + error_discriminator_fake
-        error_discriminator.backward() # Calculate the weights
-        optimizer_discriminator.step() # Update the weights
-
-        # Step 2 : Updating weights of neural network of the Generator
-        network_generator.zero_grad()
-        target = Variable(torch.ones(inputs.size()[0], device=device))
-        output = network_discriminator(fake)
-        error_generator = criterion(output, target)
-
-        # Backpropogating the error of Generator
-        error_generator.backward()
-        optimizer_generator.step()
-
-        # Visualize the training
-        print('[%d/%d][%d/%d] Loss_Discriminator : %.4f Loss_Generator : %.4f' % (epoch, epochs, i, len(dataloader), error_discriminator.item(), error_generator.item()))
-
-        # saving the generated image at every 100 step
-        if i % 100 == 0:
-            vutils.save_image(real, '%s/real_samples.png' % "./gan_results", normalize=True)
+            # Training the Discriminator with the fake image from the Generator
+            noise = Variable(torch.randn(inputs.size()[0], 100, 1, 1, device=device))
             fake = network_generator(noise)
-            vutils.save_image(fake.data, '%s/fake_samples_epoch_%03d.png' % ("./gan_results", epoch), normalize=True)
+            target = Variable(torch.zeros(inputs.size()[0], device=device))
+            output = network_discriminator(fake.detach())
+            error_discriminator_fake = criterion(output, target)
+
+            # Backpropogating the total error
+            error_discriminator = error_discriminator_real + error_discriminator_fake
+            error_discriminator.backward() # Calculate the weights
+            optimizer_discriminator.step() # Update the weights
+
+            # Step 2 : Updating weights of neural network of the Generator
+            network_generator.zero_grad()
+            target = Variable(torch.ones(inputs.size()[0], device=device))
+            output = network_discriminator(fake)
+            error_generator = criterion(output, target)
+
+            # Backpropogating the error of Generator
+            error_generator.backward()
+            optimizer_generator.step()
+
+            # Visualize the training
+            print('Training the model ==> [%d/%d][%d/%d] ----> Loss of the Discriminator : %.4f Loss of the Generator : %.4f' % (epoch, epochs, i, len(dataloader), error_discriminator.item(), error_generator.item()))
+
+            # saving the generated image at every 100 step
+            if i % 100 == 0:
+                vutils.save_image(real, '%s/real_samples.png' % "./gan_results", normalize=True)
+                fake = network_generator(noise)
+                vutils.save_image(fake.data, '%s/fake_samples_epoch_%03d.png' % ("./gan_results", epoch), normalize=True)
+                
+        except Exception as e:
+            pass
+    
+    #print('Training the model ==> [%d/%d] ----> Loss of the Discriminator : %.4f Loss of the Generator : %.4f' % (epoch, epochs, error_discriminator.item(), error_generator.item()))
+
+torch.save(network_generator, './Generator.pth')
+torch.save(network_discriminator, './Discriminator.pth')
