@@ -16,7 +16,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 batchsize = 64
 imagesize = 64
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device  = torch.cuda.device(0)
 
 torch.cuda.device_count
 
@@ -24,7 +25,7 @@ torch.cuda.device_count
 transform = transforms.Compose([transforms.Resize((imagesize,imagesize)), transforms.ToTensor(), transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))])
 
 # Loading the dataset
-dataset = dset.ImageFolder('C:/Users/neele/OneDrive/Documents/Datasets/bookimagesfortraining', transform=transform)
+dataset = dset.ImageFolder('C:/Users/neele/OneDrive/Documents/Datasets/bookimagesfortraining_cloud', transform=transform)
 #dataset = dset.CIFAR10(root="./data", download=True, transform=transform)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batchsize, shuffle=True)
 
